@@ -1,45 +1,25 @@
-"""Defines the Landscape class."""
-import abc
+from typing import List, Any
 
+import editdistance
+import flexs.landscape
 import numpy as np
 
-from flexs.types import SEQUENCES_TYPE
 
+class LevenstheinLandscape(flexs.landscape.Landscape):
+    """ A simple landscape that returns the Levensthein distance from the optimum sequence as the fitness value """
 
-class Landscape(abc.ABC):
-    """
-    Base class for all landscapes and for `flexs.Model`.
+    def __init__(self, target_sequence):
+        super().__init__("Levensthein")
+        self.target_sequence = target_sequence
 
-    Attributes:
-        cost (int): Number of sequences whose fitness has been evaluated.
-        name (str): A human-readable name for the landscape (often contains
-            parameter values in the name) which is used when logging explorer runs.
+    def _fitness_function(self, sequences: flexs.model.SEQUENCES_TYPE) -> np.ndarray:
+        result = []
+        ts_len = float(len(self.target_sequence))
+        for seq in sequences:
+            # The fitness function ranges from 0 (completely different sequence) to 1 (equal to original sequence)
+            result.append((ts_len - editdistance.eval(seq, self.target_sequence))/ts_len)
+        return np.array(result)
 
-    """
-
-    def __init__(self, name: str):
-        """Create Landscape, setting `name` and setting `cost` to zero."""
-        self.cost = 0
-        self.name = name
-
-    @abc.abstractmethod
-    def _fitness_function(self, sequences: SEQUENCES_TYPE) -> np.ndarray:
+    def train(self, sequences: flexs.model.SEQUENCES_TYPE, labels: List[Any]):
+        """ The Levensthein model cannot be trained """
         pass
-
-    def get_fitness(self, sequences: SEQUENCES_TYPE) -> np.ndarray:
-        """
-        Score a list/numpy array of sequences.
-
-        This public method should not be overriden – new landscapes should
-        override the private `_fitness_function` method instead. This method
-        increments `self.cost` and then calls and returns `_fitness_function`.
-
-        Args:
-            sequences: A list/numpy array of sequence strings to be scored.
-
-        Returns:
-            Scores for each sequence.
-
-        """
-        self.cost += len(sequences)
-        return self._fitness_function(sequences)
